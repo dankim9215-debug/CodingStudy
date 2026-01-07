@@ -3,13 +3,10 @@ expt = int(input())
 
 minute += expt
 
-while True:
-	if minute >= 60:
-		minute -= 60
-		hour += 1
-		if hour >= 24:
-			hour -= 24
-	else:
-		break
+while minute >= 60:
+	hour = (hour + 1) % 24
+	minute -= 60
+
+minute %= 60
 
 print(hour, minute)
