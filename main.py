@@ -35,14 +35,13 @@ def check_weekly_progress():
     g = Github(auth=auth)
     
     now = datetime.now()
-    # 지난 금요일 19:00 기준 계산
     days_since_friday = (now.weekday() - 4) % 7
     since = (now - timedelta(days=days_since_friday)).replace(hour=19, minute=0, second=0, microsecond=0)
     if now < since:
         since -= timedelta(days=7)
         
     report = [f"📅 집계 시작: {since.strftime('%m/%d %H:%M')}"]
-    print(f"\n--- [디버깅] {since.strftime('%m/%d %H:%M')} 이후 데이터 분석 시작 ---")
+    print(f"\n--- [디버깅] {since.strftime('%m/%d %H:%M')} 이후 데이터 분석 ---")
 
     for name, repo_path in STUDY_MEMBERS.items():
         try:
@@ -64,8 +63,7 @@ def check_weekly_progress():
                             if score > 0:
                                 total_score += score
                                 solved_list.add(problem_id)
-                                # [추가] 로그에서 인정된 내역을 출력합니다.
-                                print(f"  > 인정된 문제: {problem_id} ({platform}/{difficulty}) -> {score}점")
+                                print(f"  > 인정됨: {problem_id} ({platform}/{difficulty}) -> {score}점")
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
@@ -73,14 +71,15 @@ def check_weekly_progress():
             
         except Exception as e:
             print(f"  ! 오류 발생 ({name}): {e}")
-            report.append(f"• *{name}*: 조회 실패 (권한/주소 확인 필요)")
+            report.append(f"• *{name}*: 조회 실패")
     
-    print("\n--- 디버깅 종료 ---\n")
     return "\n".join(report)
 
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
         final_message = f"☀️ *코딩 스터디 현황*\n\n{content}"
-        
-        res = requests.post(SLACK_WEBHOOK_URL, json={"text": final_message
+        res = requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
+        print(f"슬랙 전송 결과: {res.status_code}")
+    except Exception as e:
+        print(f"실행 중 오류 발생: {e}")
