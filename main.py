@@ -5,19 +5,24 @@ from datetime import datetime, timedelta
 
 # 1. 환경 설정
 GITHUB_TOKEN = os.getenv("GH_TOKEN") 
+
 SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+
 STUDY_MEMBERS = {
     "김동현": "dankim9215-debug/CodingStudy",
     "강유정": "k-yujeong/stu",
 }
 
 def get_score(platform, difficulty):
-    if platform == "Programmers":
+    # 한글 디렉토리명 '프로그래머스' 대응
+    if platform == "프로그래머스":
         try:
             return int(difficulty)
         except:
             return 0
-    if platform == "Baekjoon":
+    
+    # 한글 디렉토리명 '백준' 대응
+    if platform == "백준":
         mapping = {
             'Bronze': 1, 'Silver': 2, 'Gold': 3, 
             'Platinum': 4, 'Diamond': 5, 'Unrated': 0
@@ -27,13 +32,9 @@ def get_score(platform, difficulty):
 
 def get_last_friday_7pm():
     now = datetime.now()
-    # 요일 계산 (0:월, 1:화, 2:수, 3:목, 4:금, 5:토, 6:일)
     days_since_friday = (now.weekday() - 4) % 7
     last_friday = now - timedelta(days=days_since_friday)
-    # 시간을 오후 7시(19:00)로 설정
     last_friday_7pm = last_friday.replace(hour=19, minute=0, second=0, microsecond=0)
-    
-    # 만약 현재 시각이 금요일 오후 7시 이전이라면, 지난주 금요일로 계산
     if now < last_friday_7pm:
         last_friday_7pm -= timedelta(days=7)
     return last_friday_7pm
@@ -52,31 +53,36 @@ def check_weekly_progress():
 
             for commit in commits:
                 for file in commit.files:
+                    # 예: 백준/Bronze/문제명/파일.py -> ['백준', 'Bronze', '문제명', '파일.py']
                     parts = file.filename.split('/')
                     if len(parts) >= 3:
-                        platform, difficulty, problem_id = parts[0], parts[1], parts[2]
+                        platform = parts[0]   # '백준' 또는 '프로그래머스'
+                        difficulty = parts[1] # 'Bronze' 또는 '0' (레벨)
+                        problem_id = parts[2] # '3052.나머지'
+
                         if problem_id not in solved_list:
-                            total_score += get_score(platform, difficulty)
-                            solved_list.add(problem_id)
+                            score = get_score(platform, difficulty)
+                            if score > 0:
+                                total_score += score
+                                solved_list.add(problem_id)
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
         except Exception as e:
-            report.append(f"• *{name}*: 데이터 조회 오류")
+            report.append(f"• *{name}*: 데이터 조회 오류 (레포 확인 필요)")
     
     return "\n".join(report)
 
 def send_to_slack(text):
     payload = {"text": text}
-    requests.post(SLACK_WEBHOOK_URL, json=payload)
+    # 응답 결과 확인을 위해 response 변수 사용
+    response = requests.post(SLACK_WEBHOOK_URL, json=payload)
+    return response
 
 if __name__ == "__main__":
-    # 1. 점수 계산 실행
     report_content = check_weekly_progress()
     now = datetime.now()
     
-    # 2. 타이틀 결정 (금요일 오후 5시 근처면 [최종], 아니면 [현황])
-    # now.weekday() == 4 는 금요일을 의미합니다.
     if now.weekday() == 4 and 16 <= now.hour <= 18:
         title = "🏁 *[최종] 이번 주 코딩 스터디 마감 결과*"
     else:
@@ -84,10 +90,6 @@ if __name__ == "__main__":
         
     final_message = f"{title}\n\n{report_content}"
     
-    # 3. 로그 출력 (Actions에서 확인용)
-    print(f"전송 시도 시간: {now}")
-    print(f"메시지 내용:\n{final_message}")
-    
-    # 4. 슬랙 전송 (이 함수가 반드시 호출되어야 합니다)
-    send_to_slack(final_message)
-    print("슬랙 전송 함수 호출 완료")
+    print(f"전송 메시지:\n{final_message}")
+    res = send_to_slack(final_message)
+    print(f"슬랙 전송 결과: {res.status_code}, {res.text}")
