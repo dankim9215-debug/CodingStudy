@@ -30,7 +30,7 @@ def get_score(platform, difficulty):
         try: return int(difficulty)
         except: return 0
     if "백준" in platform:
-        mapping = {'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4, 'Diamond': 5}
+        mapping = {'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4, 'Diamond': 5, 'Ruby': 6, 'Unranked': 0}
         return mapping.get(difficulty, 0)
     return 0
 
@@ -108,7 +108,7 @@ def check_weekly_progress():
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        final_message = f"☀️ *코딩 스터디 진행 현황*\n{content}"
+        final_message = f"# *코딩 스터디 진행 현황*\n{content}"
         requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
     except Exception as e:
         print(f"오류: {e}")
