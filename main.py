@@ -90,7 +90,7 @@ def check_weekly_progress():
             status_text = f"{status_icon} 달성" if total_score >= 20 else f"{status_icon} 미달 ({20 - total_score}점 부족)"
             
             # 하이퍼링크 없이 이름만 출력
-            report.append(f"• *{name}*: {total_score}점 ({status_text})")
+            report.append(f"• {name}: {total_score}점 ({status_text})")
             
             if summary_dict:
                 def sort_key(item):
