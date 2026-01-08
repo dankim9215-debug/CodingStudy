@@ -50,7 +50,7 @@ def check_weekly_progress():
         since_kst -= timedelta(days=7)
     
     report = [f"🕒 집계 시각: {now_kst.strftime('%m/%d %H:%M')} (KST)"]
-    report.append(f"📅 기준 시작: {since_kst.strftime('%m/%d %H:%M')} (KST)\n")
+    report.append(f"📅 기준 시작: {since_kst.strftime('%m/%d %H:%M')} (KST)\n\n")
 
     for name, repo_path in STUDY_MEMBERS.items():
         try:
@@ -118,7 +118,7 @@ def check_weekly_progress():
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        final_message = f"🏃🏃🏃🏃🏃*코딩 스터디 진행 현황*🏃🏃🏃🏃🏃\n{content}"
+        final_message = f"🏃🏃🏃🏃🏃*코딩 스터디 진행 현황*🏃🏃🏃🏃🏃\n\n{content}"
         requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
     except Exception as e:
         print(f"오류: {e}")
