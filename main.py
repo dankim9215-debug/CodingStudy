@@ -23,16 +23,14 @@ STUDY_MEMBERS = {
 
 ALLOWED_EXTENSIONS = ('.py', '.sql', '.java', '.cpp', '.js', '.c', '.cs', '.ts')
 
-# 백준 등급 정렬 순서 정의
+# 정렬 순서 정의
 BAEKJOON_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ruby']
 
 def get_score(platform, difficulty):
     platform, difficulty = platform.strip(), difficulty.strip()
     
-    # [수정] 프로그래머스 점수 체계 변경 (Lv.n -> n+1점)
     if "프로그래머스" in platform:
         try:
-            # 'Lv.1' 혹은 '1'에서 숫자만 추출
             level = int(re.search(r'\d+', difficulty).group())
             return level + 1
         except:
@@ -50,15 +48,11 @@ def check_weekly_progress():
     auth = Auth.Token(GITHUB_TOKEN)
     g = Github(auth=auth)
     
-    # KST 기준 현재 시간
     now_utc = datetime.utcnow()
     now_kst = now_utc + timedelta(hours=9)
     
-    # 이번 주(또는 지난) 토요일 00:00 KST 구하기
     days_since_sat = (now_kst.weekday() - 5) % 7
     start_kst = (now_kst - timedelta(days=days_since_sat)).replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    # API 요청용 UTC 시간 변환 (KST - 9시간)
     since_utc = start_kst - timedelta(hours=9)
     
     report = [f"🕒 집계 시각: {now_kst.strftime('%m/%d %H:%M')} (KST)"]
@@ -67,8 +61,6 @@ def check_weekly_progress():
     for name, repo_path in STUDY_MEMBERS.items():
         try:
             repo = g.get_repo(repo_path)
-            
-            # 기준 시간 이후의 커밋만 가져오기
             commits = repo.get_commits(since=since_utc)
             
             total_score = 0
@@ -77,7 +69,6 @@ def check_weekly_progress():
 
             for commit in commits:
                 for file in commit.files:
-                    # 삭제된 파일은 제외
                     if file.status == 'removed':
                         continue
                         
@@ -105,21 +96,28 @@ def check_weekly_progress():
                             if score > 0:
                                 total_score += score
                                 solved_list.add(problem_id)
-                                
                                 category = f"{platform} {difficulty}"
                                 summary_dict[category] = summary_dict.get(category, 0) + 1
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
-       
             repo_url = f"https://github.com/{repo_path}"
             report.append(f"• *<{repo_url}|{name}>*: {total_score}점 ({status})")
             
             if summary_dict:
+                # [정렬 로직 수정] 백준 순서 -> 프로그래머스 레벨 순서
                 def sort_key(item):
                     cat = item[0]
+                    # 1. 백준 정렬 (0~5번 인덱스 사용)
                     for i, tier in enumerate(BAEKJOON_TIERS):
-                        if f"백준 {tier}" in cat:
+                        if "백준" in cat and tier in cat:
                             return i
+                    # 2. 프로그래머스 정렬 (100 + 레벨 숫자로 인덱스 부여)
+                    if "프로그래머스" in cat:
+                        try:
+                            level = int(re.search(r'\d+', cat).group())
+                            return 100 + level
+                        except:
+                            return 200
                     return 999 
 
                 sorted_summary = sorted(summary_dict.items(), key=sort_key)
