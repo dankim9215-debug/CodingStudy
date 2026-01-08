@@ -21,8 +21,10 @@ STUDY_MEMBERS = {
     "조혜정": "HYEJEONG-JO/CO_test"
 }
 
-# 소스 코드 확장자 정의
 ALLOWED_EXTENSIONS = ('.py', '.sql', '.java', '.cpp', '.js', '.c', '.cs', '.ts')
+
+# 백준 등급 정렬 순서 정의
+BAEKJOON_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ruby']
 
 def get_score(platform, difficulty):
     platform, difficulty = platform.strip(), difficulty.strip()
@@ -30,7 +32,10 @@ def get_score(platform, difficulty):
         try: return int(difficulty)
         except: return 0
     if "백준" in platform:
-        mapping = {'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4, 'Diamond': 5, 'Ruby': 6, 'Unranked': 0}
+        mapping = {
+            'Bronze': 1, 'Silver': 2, 'Gold': 3, 
+            'Platinum': 4, 'Diamond': 5, 'Ruby': 6
+        }
         return mapping.get(difficulty, 0)
     return 0
 
@@ -38,7 +43,6 @@ def check_weekly_progress():
     auth = Auth.Token(GITHUB_TOKEN)
     g = Github(auth=auth)
     
-    # 한국 시간(KST) 기준 시간 설정 (UTC+9)
     now_kst = datetime.utcnow() + timedelta(hours=9)
     days_since_friday = (now_kst.weekday() - 4) % 7
     since_kst = (now_kst - timedelta(days=days_since_friday)).replace(hour=19, minute=0, second=0, microsecond=0)
@@ -52,8 +56,6 @@ def check_weekly_progress():
         try:
             repo = g.get_repo(repo_path)
             default_branch = repo.default_branch
-            
-            # 레포지토리의 현재 파일 트리 구조를 가져옴
             tree = repo.get_git_tree(default_branch, recursive=True).tree
             
             total_score = 0
@@ -77,7 +79,6 @@ def check_weekly_progress():
                     difficulty = parts[target_idx + 1]
                     problem_id = parts[target_idx + 2]
 
-                    # 문제 번호가 숫자로 시작하는지 확인
                     if not re.match(r'^\d+', problem_id):
                         continue
 
@@ -94,7 +95,16 @@ def check_weekly_progress():
             report.append(f"• *{name}*: {total_score}점 ({status})")
             
             if summary_dict:
-                summary_items = [f"{cat}: {count}개" for cat, count in summary_dict.items()]
+                # [정렬 로직] 백준 등급 순서대로 먼저 정렬하고, 나머지는 이름순으로 정렬
+                def sort_key(item):
+                    cat = item[0]
+                    for i, tier in enumerate(BAEKJOON_TIERS):
+                        if f"백준 {tier}" in cat:
+                            return i
+                    return 999  # 백준이 아닌 경우(프로그래머스 등) 뒤로 보냄
+
+                sorted_summary = sorted(summary_dict.items(), key=sort_key)
+                summary_items = [f"{cat}: {count}개" for cat, count in sorted_summary]
                 report.append(f"    └ " + ", ".join(summary_items))
             else:
                 report.append("    └ 현재 풀이 내역 없음")
@@ -108,7 +118,7 @@ def check_weekly_progress():
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        final_message = f"        *코딩 스터디 진행 현황*\n{content}"
+        final_message = f"\t\t*코딩 스터디 진행 현황*\n{content}"
         requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
     except Exception as e:
         print(f"오류: {e}")
