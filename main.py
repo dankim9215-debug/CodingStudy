@@ -110,7 +110,9 @@ def check_weekly_progress():
                                 summary_dict[category] = summary_dict.get(category, 0) + 1
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
-            report.append(f"• *{name}*: {total_score}점 ({status})")
+       
+            repo_url = f"https://github.com/{repo_path}"
+            report.append(f"• *<{repo_url}|{name}>*: {total_score}점 ({status})")
             
             if summary_dict:
                 def sort_key(item):
