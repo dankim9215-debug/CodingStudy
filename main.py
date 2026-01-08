@@ -43,19 +43,17 @@ def check_weekly_progress():
     now_utc = datetime.utcnow()
     now_kst = now_utc + timedelta(hours=9)
     
-    # [수정] 금요일(4) 오후 8시(20:00) 기준 계산
-    # (오늘 요일 - 금요일) % 7 을 해서 지난 금요일을 찾음
     days_since_friday = (now_kst.weekday() - 4) % 7
     start_kst = (now_kst - timedelta(days=days_since_friday)).replace(hour=20, minute=0, second=0, microsecond=0)
     
-    # 만약 현재 시간이 금요일 20:00 전이라면 일주일 전 금요일로 설정
     if now_kst < start_kst:
         start_kst -= timedelta(days=7)
     
     since_utc = start_kst - timedelta(hours=9)
     
-    report = [f"🕒 집계 시각: {now_kst.strftime('%m/%d %H:%M')} (KST)"]
-    report.append(f"📅 기준 시작: {start_kst.strftime('%m/%d %H:%M')} (KST) (금요일 20:00)\n\n")
+    # 헤더 구성
+    report = [f"🕒 *집계 시각:* {now_kst.strftime('%m/%d %H:%M')} (KST)"]
+    report.append(f"📅 *기준 시작:* {start_kst.strftime('%m/%d %H:%M')} (KST) (금요일 20:00)\n")
 
     for name, repo_path in STUDY_MEMBERS.items():
         try:
@@ -89,9 +87,12 @@ def check_weekly_progress():
                                 cat = f"{platform} {diff}"
                                 summary_dict[cat] = summary_dict.get(cat, 0) + 1
             
-            status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
+            # 이모지 명시적 추가
+            status_icon = "✅" if total_score >= 20 else "❌"
+            status_text = f"{status_icon} 달성" if total_score >= 20 else f"{status_icon} 미달 ({20 - total_score}점 부족)"
+            
             repo_url = f"https://github.com/{repo_path}"
-            report.append(f"• *<{repo_url}|{name}>*: {total_score}점 ({status})")
+            report.append(f"• *<{repo_url}|{name}>*: {total_score}점 ({status_text})")
             
             if summary_dict:
                 def sort_key(item):
@@ -104,27 +105,28 @@ def check_weekly_progress():
                     return 999 
 
                 sorted_summary = sorted(summary_dict.items(), key=sort_key)
-                report.append(f"    └ " + ", ".join([f"{cat}: {count}개" for cat, count in sorted_summary]))
+                # 요약 내역을 한 줄로 깔끔하게
+                summary_str = ", ".join([f"{cat}: {count}개" for cat, count in sorted_summary])
+                report.append(f"    └ _{summary_str}_")
             else:
-                report.append("    └ 이번 주 풀이 내역 없음")
-            report.append("") 
+                report.append("    └ _이번 주 풀이 내역 없음_")
+            report.append("") # 멤버 간 간격
             
-        except Exception as e:
-            report.append(f"• *{name}*: 조회 실패\n")
+        except Exception:
+            report.append(f"• *{name}*: ⚠️ 조회 실패 (레포지토리 주소 확인 필요)\n")
     
     return "\n".join(report)
 
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        final_message = f"🏃🏃🏃🏃🏃*코딩 스터디 진행 현황*🏃🏃🏃🏃🏃\n\n{content}"
+        # 워크플로 상단에 이모지 추가 및 제목 강조
+        title = "🏃🏃 *코딩 스터디 진행 현황* 🏃🏃\n"
+        final_message = f"{title}\n{content}"
         
-        # 슬랙 워크플로 빌더 변수명 'text'에 맞춤
-        response = requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=15)
-        
-        # 로그 확인용 (GitHub Actions Console에서 확인 가능)
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.text}")
+        requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=15)
+    except Exception as e:
+        print(f"Error: {e}")
         
     except Exception as e:
         print(f"Error: {e}")
