@@ -71,24 +71,23 @@ def send_to_slack(text):
     requests.post(SLACK_WEBHOOK_URL, json=payload)
 
 if __name__ == "__main__":
+    # 1. 점수 계산 실행
     report_content = check_weekly_progress()
     now = datetime.now()
     
-    # 금요일 오후 5시 리포트 (한국 시간 17시 부근)
+    # 2. 타이틀 결정 (금요일 오후 5시 근처면 [최종], 아니면 [현황])
+    # now.weekday() == 4 는 금요일을 의미합니다.
     if now.weekday() == 4 and 16 <= now.hour <= 18:
         title = "🏁 *[최종] 이번 주 코딩 스터디 마감 결과*"
     else:
         title = f"☀️ *[현황] 코딩 스터디 진행 현황 ({now.strftime('%m/%d')})*"
         
     final_message = f"{title}\n\n{report_content}"
-    send_to_slack(final_message)
-
-if __name__ == "__main__":
-    report_content = check_weekly_progress()
-    # ... 기존 코드들 ...
-    final_message = f"{title}\n\n{report_content}"
     
-    # [추가] 슬랙 전송 직전에 출력을 찍어봅니다.
-    print(f"전송할 메시지: {final_message}") 
+    # 3. 로그 출력 (Actions에서 확인용)
+    print(f"전송 시도 시간: {now}")
+    print(f"메시지 내용:\n{final_message}")
     
+    # 4. 슬랙 전송 (이 함수가 반드시 호출되어야 합니다)
     send_to_slack(final_message)
+    print("슬랙 전송 함수 호출 완료")
