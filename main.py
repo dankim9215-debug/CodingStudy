@@ -136,6 +136,9 @@ if __name__ == "__main__":
     try:
         content = check_weekly_progress()
         final_message = f"🏃🏃🏃🏃🏃*코딩 스터디 진행 현황*🏃🏃🏃🏃🏃\n\n{content}"
-        requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
+
+        payload = {"text": final_message}
+        
+        requests.post(SLACK_WEBHOOK_URL, json=payload, timeout=10)
     except Exception as e:
         print(f"오류: {e}")
