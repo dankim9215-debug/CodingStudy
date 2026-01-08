@@ -13,7 +13,7 @@ STUDY_MEMBERS = {
     "김동현": "dankim9215-debug/CodingStudy",
     "김동환": "hwan1111/Coding-Test",
     "김수빈": "subin912/codingtest",
-    "김재욱": "finstts99/baekjoon",
+    "김재욱": "finstats99/baekjoon",
     "김지연": "JiyeonKim017/coding-test",
     "신나경": "nakyungs/codingtest",
     "안유민": "DEVELOPERYUMIN/CodingTest",
