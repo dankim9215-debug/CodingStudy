@@ -69,6 +69,7 @@ def check_weekly_progress():
             report.append(f"• *{name}*: {total_score}점 ({status})")
         except Exception as e:
             report.append(f"• *{name}*: 조회 실패 (권한/주소 확인 필요)")
+    print(f"인정된 문제: {problem_id}")
     
     return "\n".join(report)
 
