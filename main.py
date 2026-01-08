@@ -9,7 +9,7 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 
 STUDY_MEMBERS = {
     "김동현": "dankim9215-debug/CodingStudy",
-    "강유정": "k-yujeong/stu",
+    "김지연": "JiyeonKim017/coding-test",
 }
 
 # 허용할 소스 코드 확장자
