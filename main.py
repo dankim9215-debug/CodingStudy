@@ -51,24 +51,19 @@ def check_weekly_progress():
         try:
             repo = g.get_repo(repo_path)
             default_branch = repo.default_branch
-            
-            # [핵심 변경] 커밋 로그를 순회하지 않고, 마지막 커밋 시점의 전체 파일 트리(Tree)를 가져옵니다.
-            # recursive=True를 통해 모든 하위 폴더의 파일을 한 번에 가져옵니다.
             tree = repo.get_git_tree(default_branch, recursive=True).tree
             
-            total_score, solved_list = 0, set()
-            details = [] 
+            total_score = 0
+            solved_list = set()
+            # 난이도별 개수를 저장할 딕셔너리
+            summary_dict = {} 
 
             for file in tree:
                 path = file.path
-                
-                # 1. 소스 코드 확장자 검사
                 if not path.lower().endswith(ALLOWED_EXTENSIONS):
                     continue
 
                 parts = path.split('/')
-                
-                # 2. 플랫폼 위치 탐색
                 target_idx = -1
                 for i, p in enumerate(parts):
                     if "백준" in p or "프로그래머스" in p:
@@ -80,7 +75,6 @@ def check_weekly_progress():
                     difficulty = parts[target_idx + 1]
                     problem_id = parts[target_idx + 2]
 
-                    # 3. 문제 번호 형식 검사 (숫자로 시작해야 함, '1w task' 등 제외)
                     if not re.match(r'^\d+', problem_id):
                         continue
 
@@ -89,13 +83,20 @@ def check_weekly_progress():
                         if score > 0:
                             total_score += score
                             solved_list.add(problem_id)
-                            github_link = f"https://github.com/{repo_path}/blob/{default_branch}/{path}"
-                            details.append(f"    └ <{github_link}|{problem_id}> ({score}점)")
+                            
+                            # 요약용 카테고리 이름 생성 (예: 백준 Gold 또는 프로그래머스 Lv.2)
+                            category = f"{platform} {difficulty}"
+                            summary_dict[category] = summary_dict.get(category, 0) + 1
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
-            if details: report.extend(details)
-            else: report.append("    └ 현재 레포지토리에 풀이 내역 없음")
+            
+            # 요약 내역 추가
+            if summary_dict:
+                summary_items = [f"{cat}: {count}개" for cat, count in summary_dict.items()]
+                report.append(f"    └ " + ", ".join(summary_items))
+            else:
+                report.append("    └ 현재 풀이 내역 없음")
             report.append("") 
             
         except Exception as e:
@@ -106,6 +107,6 @@ def check_weekly_progress():
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        requests.post(SLACK_WEBHOOK_URL, json={"text": f"☀️ *코딩 스터디 현재 상태*\n{content}"}, timeout=10)
+        requests.post(SLACK_WEBHOOK_URL, json={"text": f"☀️ *코딩 스터디 진행 현황*\n{content}"}, timeout=10)
     except Exception as e:
-        print(f"오류: {e}")
+        print(f"오류: {e}")"오류: {e}")
