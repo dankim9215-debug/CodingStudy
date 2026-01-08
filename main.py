@@ -1,11 +1,10 @@
 import os
 import requests
-from github import Github
+from github import Github, Auth
 from datetime import datetime, timedelta
 
 # 1. 환경 설정
 GITHUB_TOKEN = os.getenv("GH_TOKEN") 
-
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 
 STUDY_MEMBERS = {
@@ -14,36 +13,36 @@ STUDY_MEMBERS = {
 }
 
 def get_score(platform, difficulty):
-    # 한글 디렉토리명 '프로그래머스' 대응
-    if platform == "프로그래머스":
+    platform = platform.strip()
+    difficulty = difficulty.strip()
+    
+    if "프로그래머스" in platform:
         try:
             return int(difficulty)
         except:
             return 0
     
-    # 한글 디렉토리명 '백준' 대응
-    if platform == "백준":
+    if "백준" in platform:
+        # 난이도 문자열에 따른 점수 매핑
         mapping = {
             'Bronze': 1, 'Silver': 2, 'Gold': 3, 
-            'Platinum': 4, 'Diamond': 5, 'Unrated': 0
+            'Platinum': 4, 'Diamond': 5
         }
         return mapping.get(difficulty, 0)
     return 0
 
-def get_last_friday_7pm():
+def check_weekly_progress():
+    auth = Auth.Token(GITHUB_TOKEN)
+    g = Github(auth=auth)
+    
+    # 지난 금요일 19:00 기준 설정
     now = datetime.now()
     days_since_friday = (now.weekday() - 4) % 7
-    last_friday = now - timedelta(days=days_since_friday)
-    last_friday_7pm = last_friday.replace(hour=19, minute=0, second=0, microsecond=0)
-    if now < last_friday_7pm:
-        last_friday_7pm -= timedelta(days=7)
-    return last_friday_7pm
-
-def check_weekly_progress():
-    g = Github(GITHUB_TOKEN)
-    since = get_last_friday_7pm()
-    report = []
-    report.append(f"📅 집계 시작: {since.strftime('%m/%d %H:%M')}")
+    since = (now - timedelta(days=days_since_friday)).replace(hour=19, minute=0, second=0, microsecond=0)
+    if now < since:
+        since -= timedelta(days=7)
+        
+    report = [f"📅 집계 시작: {since.strftime('%m/%d %H:%M')}"]
 
     for name, repo_path in STUDY_MEMBERS.items():
         try:
@@ -53,12 +52,12 @@ def check_weekly_progress():
 
             for commit in commits:
                 for file in commit.files:
-                    # 예: 백준/Bronze/문제명/파일.py -> ['백준', 'Bronze', '문제명', '파일.py']
+                    # 경로 분석: 백준/Bronze/문제번호.이름/파일
                     parts = file.filename.split('/')
                     if len(parts) >= 3:
-                        platform = parts[0]   # '백준' 또는 '프로그래머스'
-                        difficulty = parts[1] # 'Bronze' 또는 '0' (레벨)
-                        problem_id = parts[2] # '3052.나머지'
+                        platform = parts[0]   # 백준 or 프로그래머스
+                        difficulty = parts[1] # Bronze or 1
+                        problem_id = parts[2] # 문제번호.이름 (중복방지 키)
 
                         if problem_id not in solved_list:
                             score = get_score(platform, difficulty)
@@ -69,27 +68,16 @@ def check_weekly_progress():
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
         except Exception as e:
-            report.append(f"• *{name}*: 데이터 조회 오류 (레포 확인 필요)")
+            report.append(f"• *{name}*: 조회 실패 (권한/주소 확인 필요)")
     
     return "\n".join(report)
 
-def send_to_slack(text):
-    payload = {"text": text}
-    # 응답 결과 확인을 위해 response 변수 사용
-    response = requests.post(SLACK_WEBHOOK_URL, json=payload)
-    return response
-
 if __name__ == "__main__":
-    report_content = check_weekly_progress()
-    now = datetime.now()
-    
-    if now.weekday() == 4 and 16 <= now.hour <= 18:
-        title = "🏁 *[최종] 이번 주 코딩 스터디 마감 결과*"
-    else:
-        title = f"☀️ *[현황] 코딩 스터디 진행 현황 ({now.strftime('%m/%d')})*"
+    try:
+        content = check_weekly_progress()
+        final_message = f"☀️ *코딩 스터디 현황*\n\n{content}"
         
-    final_message = f"{title}\n\n{report_content}"
-    
-    print(f"전송 메시지:\n{final_message}")
-    res = send_to_slack(final_message)
-    print(f"슬랙 전송 결과: {res.status_code}, {res.text}")
+        requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
+        print("정상적으로 실행되었습니다.")
+    except Exception as e:
+        print(f"오류 발생: {e}")
