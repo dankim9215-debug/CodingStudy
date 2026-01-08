@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 # 1. 환경 설정
 GITHUB_TOKEN = os.getenv("GH_TOKEN") 
 
-SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
+SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
 
 STUDY_MEMBERS = {
     "김동현": "dankim9215-debug/CodingStudy",
