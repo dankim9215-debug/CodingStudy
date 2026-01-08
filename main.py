@@ -21,6 +21,7 @@ STUDY_MEMBERS = {
     "조혜정": "HYEJEONG-JO/CO_test"
 }
 
+# 소스 코드 확장자 정의
 ALLOWED_EXTENSIONS = ('.py', '.sql', '.java', '.cpp', '.js', '.c', '.cs', '.ts')
 
 def get_score(platform, difficulty):
@@ -37,7 +38,7 @@ def check_weekly_progress():
     auth = Auth.Token(GITHUB_TOKEN)
     g = Github(auth=auth)
     
-    # 한국 시간(KST) 기준 시간 설정
+    # 한국 시간(KST) 기준 시간 설정 (UTC+9)
     now_kst = datetime.utcnow() + timedelta(hours=9)
     days_since_friday = (now_kst.weekday() - 4) % 7
     since_kst = (now_kst - timedelta(days=days_since_friday)).replace(hour=19, minute=0, second=0, microsecond=0)
@@ -51,11 +52,12 @@ def check_weekly_progress():
         try:
             repo = g.get_repo(repo_path)
             default_branch = repo.default_branch
+            
+            # 레포지토리의 현재 파일 트리 구조를 가져옴
             tree = repo.get_git_tree(default_branch, recursive=True).tree
             
             total_score = 0
             solved_list = set()
-            # 난이도별 개수를 저장할 딕셔너리
             summary_dict = {} 
 
             for file in tree:
@@ -75,6 +77,7 @@ def check_weekly_progress():
                     difficulty = parts[target_idx + 1]
                     problem_id = parts[target_idx + 2]
 
+                    # 문제 번호가 숫자로 시작하는지 확인
                     if not re.match(r'^\d+', problem_id):
                         continue
 
@@ -84,14 +87,12 @@ def check_weekly_progress():
                             total_score += score
                             solved_list.add(problem_id)
                             
-                            # 요약용 카테고리 이름 생성 (예: 백준 Gold 또는 프로그래머스 Lv.2)
                             category = f"{platform} {difficulty}"
                             summary_dict[category] = summary_dict.get(category, 0) + 1
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
             
-            # 요약 내역 추가
             if summary_dict:
                 summary_items = [f"{cat}: {count}개" for cat, count in summary_dict.items()]
                 report.append(f"    └ " + ", ".join(summary_items))
@@ -107,6 +108,7 @@ def check_weekly_progress():
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        requests.post(SLACK_WEBHOOK_URL, json={"text": f"☀️ *코딩 스터디 진행 현황*\n{content}"}, timeout=10)
+        final_message = f"☀️ *코딩 스터디 진행 현황*\n{content}"
+        requests.post(SLACK_WEBHOOK_URL, json={"text": final_message}, timeout=10)
     except Exception as e:
-        print(f"오류: {e}")"오류: {e}")
+        print(f"오류: {e}")
