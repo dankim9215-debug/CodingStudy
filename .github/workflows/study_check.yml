@@ -2,8 +2,8 @@ name: Daily & Weekly Study Score Check
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 매일 오전 9시
-    - cron: '0 8 * * 5' # 금요일 오후 5시
+    - cron: '0 0 * * *' # 매일 오전 9시 (KST)
+    - cron: '0 8 * * 5' # 금요일 오후 5시 (KST)
   workflow_dispatch:
 
 jobs:
@@ -11,15 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Install dependencies
         run: pip install PyGithub requests
+
       - name: Run Script
         env:
-          # 깃허브 Secret에서 값을 가져와 프로그램에 전달하는 핵심 부분입니다!
+          # 여기가 핵심입니다. Secrets에 저장된 이름을 그대로 가져옵니다.
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python main.py
