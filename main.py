@@ -15,30 +15,13 @@ STUDY_MEMBERS = {
 def get_score(platform, difficulty):
     platform = platform.strip()
     difficulty = difficulty.strip()
-    
     if "프로그래머스" in platform:
         try: return int(difficulty)
         except: return 0
-    
     if "백준" in platform:
         mapping = {'Bronze': 1, 'Silver': 2, 'Gold': 3, 'Platinum': 4, 'Diamond': 5}
         return mapping.get(difficulty, 0)
     return 0
-
-def make_problem_link(platform, problem_id):
-    """문제 ID에서 숫자만 추출하여 해당 플랫폼의 링크를 생성합니다."""
-    import re
-    # 숫자만 추출 (예: '10811.바구니뒤집기' -> '10811')
-    problem_num = re.findall(r'\d+', problem_id)
-    if not problem_num:
-        return problem_id
-    
-    num = problem_num[0]
-    if "백준" in platform:
-        return f"<https://www.acmicpc.net/problem/{num}|{problem_id}>"
-    elif "프로그래머스" in platform:
-        return f"<https://school.programmers.co.kr/learn/courses/30/lessons/{num}|{problem_id}>"
-    return problem_id
 
 def check_weekly_progress():
     auth = Auth.Token(GITHUB_TOKEN)
@@ -56,13 +39,16 @@ def check_weekly_progress():
     for name, repo_path in STUDY_MEMBERS.items():
         try:
             repo = g.get_repo(repo_path)
+            # 기본 브랜치 이름을 가져옵니다 (main 또는 master)
+            default_branch = repo.default_branch
             commits = repo.get_commits(since=since)
             total_score, solved_list = 0, set()
             details = [] 
 
             for commit in commits:
                 for file in commit.files:
-                    parts = file.filename.split('/')
+                    path = file.filename
+                    parts = path.split('/')
                     if len(parts) >= 3:
                         platform, difficulty, problem_id = parts[0], parts[1], parts[2]
 
@@ -71,8 +57,12 @@ def check_weekly_progress():
                             if score > 0:
                                 total_score += score
                                 solved_list.add(problem_id)
-                                # 링크 생성 함수 호출
-                                link_text = make_problem_link(platform, problem_id)
+                                
+                                # 깃허브 파일 직접 링크 생성
+                                # 형식: https://github.com/아이디/레포/blob/브랜치/경로
+                                github_link = f"https://github.com/{repo_path}/blob/{default_branch}/{path}"
+                                link_text = f"<{github_link}|{problem_id}>"
+                                
                                 details.append(f"    └ {link_text} ({score}점)")
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
@@ -82,18 +72,14 @@ def check_weekly_progress():
             report.append("") 
             
         except Exception as e:
-            report.append(f"• *{name}*: 조회 실패\n")
+            report.append(f"• *{name}*: 조회 실패 (권한/주소 확인)\n")
     
     return "\n".join(report)
 
 if __name__ == "__main__":
     try:
         content = check_weekly_progress()
-        now = datetime.now()
         title = "☀️ *코딩 스터디 진행 현황*"
-        if now.weekday() == 4 and 16 <= now.hour <= 18:
-            title = "🏁 *[최종] 이번 주 코딩 스터디 마감 결과*"
-            
         requests.post(SLACK_WEBHOOK_URL, json={"text": f"{title}\n{content}"}, timeout=10)
     except Exception as e:
         print(f"오류: {e}")
