@@ -43,53 +43,65 @@ def check_weekly_progress():
     auth = Auth.Token(GITHUB_TOKEN)
     g = Github(auth=auth)
     
-    now_kst = datetime.utcnow() + timedelta(hours=9)
-    days_since_friday = (now_kst.weekday() - 4) % 7
-    since_kst = (now_kst - timedelta(days=days_since_friday)).replace(hour=19, minute=0, second=0, microsecond=0)
-    if now_kst < since_kst:
-        since_kst -= timedelta(days=7)
+    # KST 기준 현재 시간
+    now_utc = datetime.utcnow()
+    now_kst = now_utc + timedelta(hours=9)
+    
+    # 이번 주(또는 지난) 토요일 00:00 KST 구하기
+    # weekday(): 월=0, ..., 토=5, 일=6
+    days_since_sat = (now_kst.weekday() - 5) % 7
+    start_kst = (now_kst - timedelta(days=days_since_sat)).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # API 요청용 UTC 시간 변환 (KST - 9시간)
+    since_utc = start_kst - timedelta(hours=9)
     
     report = [f"🕒 집계 시각: {now_kst.strftime('%m/%d %H:%M')} (KST)"]
-    report.append(f"📅 기준 시작: {since_kst.strftime('%m/%d %H:%M')} (KST)\n\n")
+    report.append(f"📅 기준 시작: {start_kst.strftime('%m/%d %H:%M')} (KST) (토요일 00:00)\n\n")
 
     for name, repo_path in STUDY_MEMBERS.items():
         try:
             repo = g.get_repo(repo_path)
-            default_branch = repo.default_branch
-            tree = repo.get_git_tree(default_branch, recursive=True).tree
+            
+            # 기준 시간 이후의 커밋만 가져오기
+            commits = repo.get_commits(since=since_utc)
             
             total_score = 0
             solved_list = set()
             summary_dict = {} 
 
-            for file in tree:
-                path = file.path
-                if not path.lower().endswith(ALLOWED_EXTENSIONS):
-                    continue
-
-                parts = path.split('/')
-                target_idx = -1
-                for i, p in enumerate(parts):
-                    if "백준" in p or "프로그래머스" in p:
-                        target_idx = i
-                        break
-                
-                if target_idx != -1 and len(parts) > target_idx + 2:
-                    platform = parts[target_idx]
-                    difficulty = parts[target_idx + 1]
-                    problem_id = parts[target_idx + 2]
-
-                    if not re.match(r'^\d+', problem_id):
+            for commit in commits:
+                for file in commit.files:
+                    # 삭제된 파일은 제외
+                    if file.status == 'removed':
+                        continue
+                        
+                    path = file.filename
+                    if not path.lower().endswith(ALLOWED_EXTENSIONS):
                         continue
 
-                    if problem_id not in solved_list:
-                        score = get_score(platform, difficulty)
-                        if score > 0:
-                            total_score += score
-                            solved_list.add(problem_id)
-                            
-                            category = f"{platform} {difficulty}"
-                            summary_dict[category] = summary_dict.get(category, 0) + 1
+                    parts = path.split('/')
+                    target_idx = -1
+                    for i, p in enumerate(parts):
+                        if "백준" in p or "프로그래머스" in p:
+                            target_idx = i
+                            break
+                    
+                    if target_idx != -1 and len(parts) > target_idx + 2:
+                        platform = parts[target_idx]
+                        difficulty = parts[target_idx + 1]
+                        problem_id = parts[target_idx + 2]
+
+                        if not re.match(r'^\d+', problem_id):
+                            continue
+
+                        if problem_id not in solved_list:
+                            score = get_score(platform, difficulty)
+                            if score > 0:
+                                total_score += score
+                                solved_list.add(problem_id)
+                                
+                                category = f"{platform} {difficulty}"
+                                summary_dict[category] = summary_dict.get(category, 0) + 1
             
             status = "✅ 달성" if total_score >= 20 else f"❌ 미달 ({20 - total_score}점 부족)"
             report.append(f"• *{name}*: {total_score}점 ({status})")
