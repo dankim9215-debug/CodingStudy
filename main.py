@@ -8,7 +8,7 @@ GITHUB_TOKEN = os.getenv("GH_TOKEN")
 SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/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"
 STUDY_MEMBERS = {
     "김동현": "dankim9215-debug/CodingStudy",
-    "김철수": "username2/repo-name",
+    "강유정": "k-yujeong/stu",
 }
 
 def get_score(platform, difficulty):
@@ -81,4 +81,14 @@ if __name__ == "__main__":
         title = f"☀️ *[현황] 코딩 스터디 진행 현황 ({now.strftime('%m/%d')})*"
         
     final_message = f"{title}\n\n{report_content}"
+    send_to_slack(final_message)
+
+if __name__ == "__main__":
+    report_content = check_weekly_progress()
+    # ... 기존 코드들 ...
+    final_message = f"{title}\n\n{report_content}"
+    
+    # [추가] 슬랙 전송 직전에 출력을 찍어봅니다.
+    print(f"전송할 메시지: {final_message}") 
+    
     send_to_slack(final_message)
