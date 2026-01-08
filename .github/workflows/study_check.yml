@@ -1,0 +1,26 @@
+name: Daily & Weekly Study Score Check
+
+on:
+  schedule:
+    # 1. 매일 오전 9시 (KST 기준, UTC 00:00)
+    - cron: '0 0 * * *'
+    # 2. 매주 금요일 오후 5시 (KST 기준, UTC 08:00)
+    - cron: '0 8 * * 5'
+  workflow_dispatch: # 수동 실행 버튼을 만들어줍니다.
+
+jobs:
+  run-checker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3 # 코드를 가져옵니다.
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: |
+          pip install PyGithub requests # 필요한 라이브러리 설치
+      - name: Run Script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }} # 등록해둔 Secret 사용
+        run: python main.py # 작성하신 main.py 실행
