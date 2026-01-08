@@ -12,6 +12,9 @@ STUDY_MEMBERS = {
     "강유정": "k-yujeong/stu",
 }
 
+# [추가] 허용할 확장자 리스트 (필요한 언어를 여기에 추가만 하면 됩니다)
+ALLOWED_EXTENSIONS = ('.py', '.sql', '.java', '.cpp', '.js', '.c', '.cs', '.ts')
+
 def get_score(platform, difficulty):
     platform = platform.strip()
     difficulty = difficulty.strip()
@@ -39,7 +42,6 @@ def check_weekly_progress():
     for name, repo_path in STUDY_MEMBERS.items():
         try:
             repo = g.get_repo(repo_path)
-            # 기본 브랜치 이름을 가져옵니다 (main 또는 master)
             default_branch = repo.default_branch
             commits = repo.get_commits(since=since)
             total_score, solved_list = 0, set()
@@ -48,6 +50,11 @@ def check_weekly_progress():
             for commit in commits:
                 for file in commit.files:
                     path = file.filename
+                    
+                    # 리스트에 등록된 확장자 중 하나로 끝나는지 확인
+                    if not path.lower().endswith(ALLOWED_EXTENSIONS):
+                        continue
+
                     parts = path.split('/')
                     if len(parts) >= 3:
                         platform, difficulty, problem_id = parts[0], parts[1], parts[2]
@@ -58,8 +65,6 @@ def check_weekly_progress():
                                 total_score += score
                                 solved_list.add(problem_id)
                                 
-                                # 깃허브 파일 직접 링크 생성
-                                # 형식: https://github.com/아이디/레포/blob/브랜치/경로
                                 github_link = f"https://github.com/{repo_path}/blob/{default_branch}/{path}"
                                 link_text = f"<{github_link}|{problem_id}>"
                                 
