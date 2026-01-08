@@ -28,9 +28,16 @@ BAEKJOON_TIERS = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ruby']
 
 def get_score(platform, difficulty):
     platform, difficulty = platform.strip(), difficulty.strip()
+    
+    # [수정] 프로그래머스 점수 체계 변경 (Lv.n -> n+1점)
     if "프로그래머스" in platform:
-        try: return int(difficulty)
-        except: return 0
+        try:
+            # 'Lv.1' 혹은 '1'에서 숫자만 추출
+            level = int(re.search(r'\d+', difficulty).group())
+            return level + 1
+        except:
+            return 0
+            
     if "백준" in platform:
         mapping = {
             'Bronze': 1, 'Silver': 2, 'Gold': 3, 
@@ -48,7 +55,6 @@ def check_weekly_progress():
     now_kst = now_utc + timedelta(hours=9)
     
     # 이번 주(또는 지난) 토요일 00:00 KST 구하기
-    # weekday(): 월=0, ..., 토=5, 일=6
     days_since_sat = (now_kst.weekday() - 5) % 7
     start_kst = (now_kst - timedelta(days=days_since_sat)).replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -107,13 +113,12 @@ def check_weekly_progress():
             report.append(f"• *{name}*: {total_score}점 ({status})")
             
             if summary_dict:
-                # [정렬 로직] 백준 등급 순서대로 먼저 정렬하고, 나머지는 이름순으로 정렬
                 def sort_key(item):
                     cat = item[0]
                     for i, tier in enumerate(BAEKJOON_TIERS):
                         if f"백준 {tier}" in cat:
                             return i
-                    return 999  # 백준이 아닌 경우(프로그래머스 등) 뒤로 보냄
+                    return 999 
 
                 sorted_summary = sorted(summary_dict.items(), key=sort_key)
                 summary_items = [f"{cat}: {count}개" for cat, count in sorted_summary]
