@@ -2,7 +2,7 @@ name: Daily & Weekly Study Score Check
 
 on:
   schedule:
-    - cron: '2 0 * * *' # 매일 오전 9시 (KST)
+    - cron: '2 23 * * *' # 매일 오전 8시 (KST)
     - cron: '58 7 * * 5' # 금요일 오후 5시 (KST)
   workflow_dispatch:
 
