@@ -15,7 +15,6 @@ STUDY_MEMBERS = {
     "김수빈": "subin912/codingtest",
     "김재욱": "finstats99/baekjoon",
     "김지연": "JiyeonKim017/coding-test",
-    "신나경": "nakyungs/codingtest",
     "안유민": "DEVELOPERYUMIN/CodingTest",
     "이수현": "shjade/codingtest",
     "조혜정": "HYEJEONG-JO/CO_test"
