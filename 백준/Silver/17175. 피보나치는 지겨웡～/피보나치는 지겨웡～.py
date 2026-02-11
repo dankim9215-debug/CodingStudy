@@ -1,9 +1,7 @@
 n = int(input())
+dp = [1,1,3]
 
-d = [1, 1]
+for i in range(3, n+1):
+    dp.append((dp[i-1] + dp[i-2] + 1)%1000000007)
 
-for i in range(2, n + 1):
-    new_value = d[i-1] + d[i-2] + 1
-    d.append(new_value % 1000000007)
-
-print(d[n])
+print(dp[n])
